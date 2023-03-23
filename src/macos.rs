@@ -34,6 +34,7 @@ pub fn unregister(_scheme: &str) -> Result<()> {
 const EVENT_CLASS: u32 = 0x4755524c;
 // kAEGetURL
 const EVENT_GET_URL: u32 = 0x4755524c;
+const EVENT_DOC: u32 = 0x6f646f63;
 
 // Adapted from https://github.com/mrmekon/fruitbasket/blob/aad14e400d710d1d46317c0d8c55ff742bfeaadd/src/osx.rs#L848
 fn parse_url_event(event: *mut Object) -> Option<String> {
@@ -43,7 +44,7 @@ fn parse_url_event(event: *mut Object) -> Option<String> {
     unsafe {
         let class: u32 = msg_send![event, eventClass];
         let id: u32 = msg_send![event, eventID];
-        if class != EVENT_CLASS || id != EVENT_GET_URL {
+        if class != EVENT_CLASS || (id != EVENT_GET_URL && id != EVENT_DOC) {
             return None;
         }
 
@@ -148,6 +149,12 @@ pub fn listen<F: FnMut(String) + Send + 'static>(handler: F) -> Result<()> {
             andSelector: sel!(handleEvent:withReplyEvent:)
             forEventClass:EVENT_CLASS
             andEventID:EVENT_GET_URL];
+
+        let _: () = msg_send![&event_manager,
+            setEventHandler: &**handler_boxed
+            andSelector: sel!(handleEvent:withReplyEvent:)
+            forEventClass:EVENT_CLASS
+            andEventID:EVENT_DOC];
     }
 
     #[cfg(debug_assertions)]
